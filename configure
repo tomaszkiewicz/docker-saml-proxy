@@ -6,6 +6,7 @@ cd /
 
 # Get environment
 export REAL_HOST=`hostname -f`
+export SCHEMA=${SCHEMA:-https}
 export host=${PROXY_HOST:-$REAL_HOST}
 export realm=`echo $host | tr [a-z] [A-Z]`
 export user=`whoami`
@@ -22,7 +23,7 @@ popd
 
 # Create mod_auth_mellon service provider config
 pushd /etc/httpd/conf.d
-  /usr/sbin/mellon_create_metadata.sh https://${host} https://${host}/mellon
+  /usr/sbin/mellon_create_metadata.sh ${SCHEMA}://${host} ${SCHEMA}://${host}/mellon
   # Create a dummy saml idp file
   touch saml_idp.xml
 popd
@@ -62,7 +63,7 @@ chown apache /etc/httpd.keytab
 
 
 # configure Apache proxy and auth
-sed -i.bak1 -e "s#proxy\.example\.com#$host#g" /etc/httpd/conf.d/proxy.conf
+sed -i.bak1 -e "s#proxy\.example\.com#$SCHEMA://$host#g" /etc/httpd/conf.d/proxy.conf
 sed -i.bak2 -e "s#https://backend\.example\.com#$BACKEND#g" /etc/httpd/conf.d/proxy.conf
 
 
@@ -88,11 +89,11 @@ echo "
 
 
 
-Proxying http://$host/mod_auth_gssapi           -> ${BACKEND}/
-Proxying http://$host/mod_auth_basic            -> ${BACKEND}/
-Proxying http://$host/mod_auth_form             -> ${BACKEND}/
-Proxying http://$host/mod_auth_mellon           -> ${BACKEND}/
-Proxying http://$host/mod_intercept_form_submit -> ${BACKEND}/
+Proxying ${SCHEMA}://$host/mod_auth_gssapi           -> ${BACKEND}/
+Proxying ${SCHEMA}://$host/mod_auth_basic            -> ${BACKEND}/
+Proxying ${SCHEMA}://$host/mod_auth_form             -> ${BACKEND}/
+Proxying ${SCHEMA}://$host/mod_auth_mellon           -> ${BACKEND}/
+Proxying ${SCHEMA}://$host/mod_intercept_form_submit -> ${BACKEND}/
 To change proxy hostname, set docker host (-h ...) on start
 To change backend, set 'BACKEND' envvar on start (e.g. BACKEND=https://foo.com)
 Authenticated principal is passed to backend as a 'Remote-User' header
