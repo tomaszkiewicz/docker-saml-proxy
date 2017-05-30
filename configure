@@ -5,8 +5,9 @@ set -e
 cd /
 
 # Get environment
-export host=`hostname -f`
-export realm=`hostname -f | tr [a-z] [A-Z]`
+export REAL_HOST=`hostname -f`
+export host=${PROXY_HOST:-$REAL_HOST}
+export realm=`echo $host | tr [a-z] [A-Z]`
 export user=`whoami`
 export BACKEND=${BACKEND:-https://api.example.com:8443}
 
