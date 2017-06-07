@@ -20,9 +20,7 @@ ADD mellon_create_metadata.sh /usr/sbin/mellon_create_metadata.sh
 # Add conf file for Apache
 ADD proxy.conf /etc/httpd/conf.d/proxy.conf.template
 
-# 80  = http
-# 443 = https
-EXPOSE 80 443
+EXPOSE 80
 
 ADD configure /usr/sbin/configure
 ENTRYPOINT /usr/sbin/configure
