@@ -79,9 +79,24 @@ else
     popd
 fi
 
-# configure Apache proxy and auth
-cat /etc/httpd/conf.d/proxy.conf.template | envsubst '$SCHEMA,$HOST,$BACKEND,$MELLON_PATH' > /etc/httpd/conf.d/proxy.conf
+REQUEST_HEADERS=""
 
+for varname in ${!SAML_MAP_*}
+do
+    declare -n REQUEST_HEADER_NAME=$varname
+    SAML_ATTR=${varname:9}
+    echo "Mapping $SAML_ATTR attribute to $REQUEST_HEADER_NAME request header"
+
+    REQUEST_HEADER_CONFIG=$(cat << EOF
+    RequestHeader set ${REQUEST_HEADER_NAME} %{MELLON_$SAML_ATTR}e env=MELLON_$SAML_ATTR
+EOF
+)
+    REQUEST_HEADERS=$(echo -e "$REQUEST_HEADERS\n$REQUEST_HEADER_CONFIG")
+done
+export REQUEST_HEADERS
+
+# configure Apache proxy and auth
+cat /etc/httpd/conf.d/proxy.conf.template | envsubst '$SCHEMA,$HOST,$BACKEND,$MELLON_PATH,$REQUEST_HEADERS' > /etc/httpd/conf.d/proxy.conf
 
 # Start apache
 httpd -DFOREGROUND
