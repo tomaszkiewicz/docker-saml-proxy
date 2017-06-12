@@ -19,6 +19,7 @@ Environment variables:
 * `REMOTE_USER_EMAIL_SAML_ATTRIBUTE` - the SAML attribute to be sent as `Remote-User-Name header`
 * `REMOTE_USER_NAME_SAML_ATTRIBUTE` - the SAML attribute to be sent as `Remote-User-Email`
 * `REMOTE_USER_PREFERRED_USERNAME_SAML_ATTRIBUTE` - the SAML attribute to be sent as `Remote-User-Preferred-Username`
+* `SAML_MAP_<<sampl_field>>` - this will map the `saml_field` to a request header specified by the property. Eg: `SAML_MAP_EmailAddress=X-WEBAUTH-USER` will map `EmailAddress` SAML field to `X-WEBAUTH-USER` request header.
 
 Volumes:
 * `/etc/httpd/conf.d/saml_idp.xml` - SAML IPD metadata (_mandatory_)
@@ -91,4 +92,127 @@ services:
 
 ### Kubernetes
 
-TODO
+#### ConfigMap
+
+The configmap stores the SAML configuration. You should download the SAML configuration from you Identity Provider
+and put into the config map. You can also use `--from-file` switch on `kubectl create configmap` ([Ref](https://kubernetes.io/docs/tasks/configure-pod-container/configmap/))
+
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: saml-proxy-config
+    namespace: <<yournamespace>>
+data:
+    saml_idp.xml: <EntityDescriptor>...</EntityDescriptor>
+
+```
+
+#### Deployment
+
+* I mount `saml_idp.xml` from the config as a volume.
+* `EmailAddress` SAML field is mapped to `X-Webauth-User` header. In my config the Grafana usernames will be the email addresses from SAML IDP. You can change it to a field you want to use.
+
+```
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: saml-proxy
+  namespace: <<yournamespace>>
+  labels:
+    version: "latest"
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 30%
+      maxUnavailable: 30%
+  progressDeadlineSeconds: 120
+  revisionHistoryLimit: 5
+  replicas: 1
+  selector:
+    matchLabels:
+      app: saml-proxy
+  template:
+    metadata:
+      labels:
+        app: saml-proxy
+        version: "latest"
+    spec:
+      containers:
+      - name: saml-proxy
+        image: "barnabassudy/saml-proxy:latest"
+        ports:
+        - name: http-service
+          containerPort: 80
+        livenessProbe:
+           tcpSocket:
+             port: http-service
+           initialDelaySeconds: 10
+        # Mounting saml_idp.xml from configMap
+        volumeMounts:
+        - name: saml-volume
+          mountPath: /etc/httpd/conf.d/saml_idp.xml
+          subPath: saml_idp.xml
+        env:
+        - name: BACKEND
+          value: "http://<<yourservice>>"
+        - name: REMOTE_USER_SAML_ATTRIBUTE
+          value: login
+        # You can specify multiple mappings
+        - name: SAML_MAP_EmailAddress
+          value: X-WEBAUTH-USER
+      volumes:
+        - name: saml-volume
+          configMap:
+            name: saml-proxy-config
+```
+
+#### Service
+
+To expose saml-proxy as a service
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: saml-proxy
+  namespace: <<yournamespace>>
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: http-service
+  selector:
+    app: saml-proxy
+```
+
+#### Ingress
+
+To make it available in the Ingress controller.
+
+```
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: monitor
+  namespace: <<yournamespace>>
+  annotations:
+    # USE YOUR ANNOTATIONS
+    # To enable let's encrypt with kube-logo: kubernetes.io/tls-acme: "true"
+spec:
+  # Use some SSL
+  # tls:
+  # - hosts:
+  # # The host where the service will be available
+  #   - "grafana.example.com"
+  #   secretName: grafana-tls
+  rules:
+  # The host where the service will be available
+  - host: "grafana.example.com"
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: saml-proxy
+          servicePort: http
+```
