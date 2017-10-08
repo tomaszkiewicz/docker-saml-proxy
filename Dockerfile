@@ -1,5 +1,5 @@
 FROM fedora:23
-MAINTAINER Barnabas Sudy <barnabas.sudy@gmail.com>
+MAINTAINER matt@parr.geek.nz
 
 RUN dnf install -y \
   apr-util-openssl \
