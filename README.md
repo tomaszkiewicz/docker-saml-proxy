@@ -6,7 +6,11 @@ This repo and Docker image provides a proxy server, configured with SAML authent
 
 To start, run like this:
 ```
-docker run -ti -p 80:80 -h auth.example.com -v -e BACKEND=https://api.example.com:8443 -e SCHEMA=http barnabassudy/saml-proxy
+docker run -ti -p 80:80 -h auth.example.com -v \
+-e BACKEND=https://api.example.com:8443 \
+-e SCHEMA=http \
+-e IDP_METADATA=https://path_to_metadata/metadata.xml \
+mpar/saml-proxy
 ```
 
 Ports:
@@ -16,13 +20,14 @@ Environment variables:
 * `BACKEND` - to requests are proxied to (_mandatory_)
 * `PROXY_HOST` - the hostname the proxy is available - falls back to the host name of the container.
 * `SCHEMA` - the schema via the proxy is available (defaults to `https`) - _Note:_ This is not the protocol how the proxy accepts. SSL termination is not a responsibility of this image.
+* `IDP_METADATA` - A URL to the metadata from the IDP - downloaded when the container is started
 * `REMOTE_USER_EMAIL_SAML_ATTRIBUTE` - the SAML attribute to be sent as `Remote-User-Name header`
 * `REMOTE_USER_NAME_SAML_ATTRIBUTE` - the SAML attribute to be sent as `Remote-User-Email`
 * `REMOTE_USER_PREFERRED_USERNAME_SAML_ATTRIBUTE` - the SAML attribute to be sent as `Remote-User-Preferred-Username`
 * `SAML_MAP_<<sampl_field>>` - this will map the `saml_field` to a request header specified by the property. Eg: `SAML_MAP_EmailAddress=X-WEBAUTH-USER` will map `EmailAddress` SAML field to `X-WEBAUTH-USER` request header.
 
 Volumes:
-* `/etc/httpd/conf.d/saml_idp.xml` - SAML IPD metadata (_mandatory_)
+* `/etc/httpd/conf.d/saml_idp.xml` - SAML IPD metadata (_mandatory_ unless using IDP_METADATA env)
 * `/etc/httpd/conf.d/saml_sp.key` - SAML SP key (generated if not provided)
 * `/etc/httpd/conf.d/saml_sp.cert` - SAML SP certificate (generated if not provided)
 * `/etc/httpd/conf.d/saml_sp.xml` - SAML SP metadata (generated if not provided)
@@ -46,10 +51,6 @@ An example IDP can be created at https://auth0.com/. After creating an account, 
 
     * Usage > Identity Provider Metadata*: Download the metadata xml and make it available as volume.
 
-## Bitium
-
-TODO
-
 ## Configuration
 
 ### Docker
@@ -62,7 +63,7 @@ docker run \
   -e BACKEND=https://api.example.com:8443 \
   -e SCHEMA=http  \
   -ti
-  barnabassudy/saml-proxy
+  mpar/saml-proxy
 ```
 
 * `-p 80:80` - port is mapped to localhost:80
@@ -71,7 +72,7 @@ docker run \
 * `-e BACKEND=https://api.example.com:8443` - the url the requests should be proxied to
 * `-e SCHEMA=http`
 * `-ti` - make it interactive (eg. being able to stop it with Ctrl+C)
-* `barnabassudy/saml-proxy` - the name of the Docker image
+* `mpar/saml-proxy` - the name of the Docker image
 
 ### Docker Compose
 
@@ -81,7 +82,8 @@ services:
   yourservice:
       ...
   saml-proxy:
-      image: "barnabassudy/saml-proxy"
+      image: "
+      mpar/saml-proxy"
       environment:
           BACKEND: "http://yourservice:port"
       ports:
@@ -140,7 +142,7 @@ spec:
     spec:
       containers:
       - name: saml-proxy
-        image: "barnabassudy/saml-proxy:latest"
+        image: "mpar/saml-proxy:latest"
         ports:
         - name: http-service
           containerPort: 80
