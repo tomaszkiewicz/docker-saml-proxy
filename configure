@@ -26,7 +26,9 @@ Example:
               - "<path>/saml_idp.xml:/etc/httpd/conf.d/saml_idp.xml"
 EOF
 )
-
+if [ ! -z "$IDP_METADATA" ]; then
+   wget -O /etc/httpd/conf.d/saml_idp.xml "$IDP_METADATA"
+fi
 if [ ! -f /etc/httpd/conf.d/saml_idp.xml ]; then
     echo -e "No saml_idp.xml file found.\n\n" \
             "In order to get the proxy running you must provide a saml_idp.xml file\n" \
