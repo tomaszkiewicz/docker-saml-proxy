@@ -12,13 +12,14 @@ RUN dnf install -y \
   mod_session \
   mod_ssl \
   gettext \
+  wget \
   && dnf clean all
 
 # Add mod_auth_mellon setup script
 ADD mellon_create_metadata.sh /usr/sbin/mellon_create_metadata.sh
 
 # Add conf file for Apache
-ADD proxy.conf /etc/httpd/conf.d/proxy.conf.template
+ADD proxy.conf /tmp/proxy.conf.template
 
 EXPOSE 80
 
