@@ -1,4 +1,4 @@
-FROM fedora:23
+FROM fedora:28
 MAINTAINER matt@parr.geek.nz
 
 RUN dnf install -y \
