@@ -5,8 +5,6 @@ RUN dnf install -y \
   apr-util-openssl \
   authconfig \
   httpd \
-  mod_auth_gssapi \
-  mod_auth_kerb \
   mod_auth_mellon \
   mod_intercept_form_submit \
   mod_session \
